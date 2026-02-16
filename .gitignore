@@ -1,0 +1,9 @@
+.DS_Store
+.env
+backend/node_modules
+backend/.env
+DerivedData
+*.xcuserstate
+*.xcuserdata
+GoogleService-Info.plist
+**/GoogleService-Info.plist
