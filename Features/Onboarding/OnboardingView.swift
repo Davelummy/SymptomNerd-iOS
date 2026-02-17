@@ -44,10 +44,10 @@ struct OnboardingView: View {
                     VStack(alignment: .leading, spacing: Theme.spacingXS) {
                         Text("Symptom Nerd")
                             .font(Typography.title)
-                            .foregroundStyle(Theme.textPrimary)
+                            .foregroundStyle(headerTitleColor)
                         Text("Track. Notice patterns. Share with care.")
                             .font(Typography.body)
-                            .foregroundStyle(Theme.textSecondary)
+                            .foregroundStyle(headerSubtitleColor)
                     }
                     .frame(width: contentWidth, alignment: .leading)
                     .padding(.top, proxy.safeAreaInsets.top + Theme.spacingXS)
@@ -118,6 +118,14 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
+
+    private var headerTitleColor: Color {
+        Color(red: 0.06, green: 0.09, blue: 0.16)
+    }
+
+    private var headerSubtitleColor: Color {
+        Color(red: 0.20, green: 0.28, blue: 0.36).opacity(0.82)
+    }
 }
 
 private struct OnboardingContent {
@@ -156,24 +164,24 @@ private struct OnboardingPage: View {
             VStack(spacing: Theme.spacingXS) {
                 Text(content.title)
                     .font(Typography.title2)
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(titleColor)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .center)
             .padding(.horizontal, Theme.spacingM)
             .padding(.vertical, Theme.spacingS)
-            .background(.ultraThinMaterial)
+            .background(cardBackground)
             .overlay(
-                RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous)
                     .stroke(colorScheme == .dark ? Color.white.opacity(0.14) : Color.black.opacity(0.08), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
 
             VStack(spacing: Theme.spacingXS) {
                 Text(content.message)
                     .font(Typography.body)
-                    .foregroundStyle(Theme.textPrimary.opacity(0.9))
+                    .foregroundStyle(messageColor)
                     .multilineTextAlignment(.center)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -181,12 +189,12 @@ private struct OnboardingPage: View {
             .frame(maxWidth: .infinity, minHeight: 96, alignment: .center)
             .padding(.horizontal, Theme.spacingM)
             .padding(.vertical, Theme.spacingS)
-            .background(.ultraThinMaterial)
+            .background(cardBackground)
             .overlay(
-                RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous)
+                RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous)
                     .stroke(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.07), lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous))
         }
     }
 
@@ -203,6 +211,23 @@ private struct OnboardingPage: View {
                 endPoint: .bottomTrailing
             )
         }
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous)
+            .fill(colorScheme == .dark ? Color.black.opacity(0.28) : Color.white.opacity(0.68))
+    }
+
+    private var titleColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.96)
+            : Color(red: 0.08, green: 0.10, blue: 0.15)
+    }
+
+    private var messageColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.9)
+            : Color(red: 0.16, green: 0.20, blue: 0.26).opacity(0.95)
     }
 }
 

@@ -27,6 +27,8 @@
 	</dict>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID or device passcode to protect your health data.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Symptom Nerd uses your microphone for live pharmacist voice calls.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

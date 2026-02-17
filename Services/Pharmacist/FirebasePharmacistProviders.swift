@@ -27,6 +27,8 @@ protocol RealtimeChatProvider: ChatProvider {
 protocol CallProvider {
     func requestCall(with handoff: HandoffPayload) async throws -> PharmacistCallStatus
     func observeStatus(onUpdate: @escaping (PharmacistCallStatus) -> Void) -> ChatListener?
+    func fetchCallHistory() async throws -> PharmacistCallHistory
+    func submitCallRating(callID: String, rating: Int, feedback: String?) async throws
     func endCall() async
     func setMuted(_ isMuted: Bool)
     func setSpeakerEnabled(_ isEnabled: Bool)
@@ -35,6 +37,14 @@ protocol CallProvider {
 
 extension CallProvider {
     func observeStatus(onUpdate: @escaping (PharmacistCallStatus) -> Void) -> ChatListener? { nil }
+    func fetchCallHistory() async throws -> PharmacistCallHistory {
+        PharmacistCallHistory(calls: [], totalCalls: 0, averageRating: nil)
+    }
+    func submitCallRating(callID: String, rating: Int, feedback: String?) async throws {
+        _ = callID
+        _ = rating
+        _ = feedback
+    }
     func endCall() async {}
     func setMuted(_ isMuted: Bool) { _ = isMuted }
     func setSpeakerEnabled(_ isEnabled: Bool) { _ = isEnabled }
@@ -74,6 +84,27 @@ enum PharmacistCallStatus: Equatable {
     case connected(String, startedAt: Date)
     case ended(String, duration: TimeInterval)
     case failed(String)
+}
+
+struct PharmacistCallRecord: Identifiable, Equatable {
+    let id: String
+    let status: String
+    let createdAt: Date?
+    let startedAt: Date?
+    let endedAt: Date?
+    let durationSeconds: Int
+    let rating: Int?
+    let ratingFeedback: String?
+
+    var canRate: Bool {
+        status == "completed" && durationSeconds > 0 && rating == nil
+    }
+}
+
+struct PharmacistCallHistory: Equatable {
+    let calls: [PharmacistCallRecord]
+    let totalCalls: Int
+    let averageRating: Double?
 }
 
 struct PharmacistMessage: Identifiable, Codable, Equatable {
@@ -161,6 +192,14 @@ final class PharmacistService {
 
     func requestCall(with handoff: HandoffPayload) async throws -> PharmacistCallStatus {
         try await callProvider.requestCall(with: handoff)
+    }
+
+    func callHistory() async throws -> PharmacistCallHistory {
+        try await callProvider.fetchCallHistory()
+    }
+
+    func submitCallRating(callID: String, rating: Int, feedback: String?) async throws {
+        try await callProvider.submitCallRating(callID: callID, rating: rating, feedback: feedback)
     }
 
     func observeCallStatus(onUpdate: @escaping (PharmacistCallStatus) -> Void) -> ChatListener? {
@@ -534,6 +573,23 @@ private struct TwilioVoiceCallReadPayload: Decodable {
     let call: TwilioVoiceCallStatusPayload
 }
 
+private struct TwilioVoiceCallHistoryPayload: Decodable {
+    let calls: [TwilioVoiceCallHistoryItemPayload]
+    let totalCalls: Int?
+    let averageRating: Double?
+}
+
+private struct TwilioVoiceCallHistoryItemPayload: Decodable {
+    let id: String
+    let status: String?
+    let createdAtMillis: Double?
+    let startedAtMillis: Double?
+    let endedAtMillis: Double?
+    let durationSeconds: Int?
+    let rating: Int?
+    let ratingFeedback: String?
+}
+
 private struct TwilioVoiceCallStatusPayload: Decodable {
     let status: String
     let queuePosition: Int?
@@ -541,6 +597,11 @@ private struct TwilioVoiceCallStatusPayload: Decodable {
 
 private struct TwilioVoiceBackendError: Decodable {
     let error: String?
+}
+
+private struct TwilioVoiceCallRatingRequest: Encodable {
+    let rating: Int
+    let feedback: String
 }
 
 private final class InlineCallStatusListener: ChatListener {
@@ -621,6 +682,82 @@ final class TwilioVoiceCallProvider: NSObject, CallProvider {
         emit(.failed(TwilioVoiceCallError.sdkNotInstalled.localizedDescription))
         throw TwilioVoiceCallError.sdkNotInstalled
 #endif
+    }
+
+    func fetchCallHistory() async throws -> PharmacistCallHistory {
+        guard let user = auth.currentUser else { throw PharmacistProviderError.notAuthenticated }
+        guard let baseURL = backendBaseURL(),
+              let url = URL(string: "/twilio/calls/history", relativeTo: baseURL)?.absoluteURL else {
+            throw TwilioVoiceCallError.backendURLMissing
+        }
+
+        let firebaseToken = try await user.getIDToken()
+        guard !firebaseToken.isEmpty else { throw TwilioVoiceCallError.backendTokenMissing }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(firebaseToken)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            if let backendError = try? JSONDecoder().decode(TwilioVoiceBackendError.self, from: data),
+               let message = backendError.error,
+               !message.isEmpty {
+                throw NSError(domain: "TwilioVoiceCallProvider", code: (response as? HTTPURLResponse)?.statusCode ?? -1, userInfo: [NSLocalizedDescriptionKey: message])
+            }
+            throw TwilioVoiceCallError.invalidBackendResponse
+        }
+
+        let payload = try JSONDecoder().decode(TwilioVoiceCallHistoryPayload.self, from: data)
+        let calls = payload.calls.map { item in
+            PharmacistCallRecord(
+                id: item.id,
+                status: item.status ?? "unknown",
+                createdAt: Self.dateFromMillis(item.createdAtMillis),
+                startedAt: Self.dateFromMillis(item.startedAtMillis),
+                endedAt: Self.dateFromMillis(item.endedAtMillis),
+                durationSeconds: max(0, item.durationSeconds ?? 0),
+                rating: item.rating,
+                ratingFeedback: item.ratingFeedback
+            )
+        }
+        return PharmacistCallHistory(
+            calls: calls,
+            totalCalls: payload.totalCalls ?? calls.count,
+            averageRating: payload.averageRating
+        )
+    }
+
+    func submitCallRating(callID: String, rating: Int, feedback: String?) async throws {
+        guard let user = auth.currentUser else { throw PharmacistProviderError.notAuthenticated }
+        guard let baseURL = backendBaseURL(),
+              let url = URL(string: "/twilio/calls/\(callID)/rating", relativeTo: baseURL)?.absoluteURL else {
+            throw TwilioVoiceCallError.backendURLMissing
+        }
+
+        let firebaseToken = try await user.getIDToken()
+        guard !firebaseToken.isEmpty else { throw TwilioVoiceCallError.backendTokenMissing }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(firebaseToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONEncoder().encode(
+            TwilioVoiceCallRatingRequest(
+                rating: rating,
+                feedback: String((feedback ?? "").prefix(500))
+            )
+        )
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            if let backendError = try? JSONDecoder().decode(TwilioVoiceBackendError.self, from: data),
+               let message = backendError.error,
+               !message.isEmpty {
+                throw NSError(domain: "TwilioVoiceCallProvider", code: (response as? HTTPURLResponse)?.statusCode ?? -1, userInfo: [NSLocalizedDescriptionKey: message])
+            }
+            throw TwilioVoiceCallError.invalidBackendResponse
+        }
     }
 
     func observeStatus(onUpdate: @escaping (PharmacistCallStatus) -> Void) -> ChatListener? {
@@ -855,6 +992,11 @@ final class TwilioVoiceCallProvider: NSObject, CallProvider {
         if ["completed", "failed", "cancelled"].contains(status) {
             activeRequestID = nil
         }
+    }
+
+    private static func dateFromMillis(_ rawValue: Double?) -> Date? {
+        guard let rawValue, rawValue > 0 else { return nil }
+        return Date(timeIntervalSince1970: rawValue / 1000)
     }
 }
 

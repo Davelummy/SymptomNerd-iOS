@@ -4,6 +4,9 @@ struct PharmacistCallView: View {
     let handoff: HandoffPayload
     @StateObject private var viewModel = PharmacistCallViewModel()
     @State private var showChat = false
+    @State private var ratingTargetCall: PharmacistCallRecord?
+    @State private var ratingErrorText: String?
+    @State private var hasPresentedAutoRating = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -111,8 +114,43 @@ struct PharmacistCallView: View {
                 PharmacistChatView(handoff: handoff)
             }
         }
+        .sheet(item: $ratingTargetCall) { call in
+            CallRatingPromptSheet(call: call) { rating, feedback in
+                do {
+                    try await PharmacistServiceFactory.makeService().submitCallRating(callID: call.id, rating: rating, feedback: feedback)
+                    ratingTargetCall = nil
+                } catch {
+                    ratingErrorText = (error as? LocalizedError)?.errorDescription ?? "Unable to submit call rating."
+                }
+            }
+        }
+        .alert("Call rating", isPresented: Binding(get: {
+            ratingErrorText != nil
+        }, set: { newValue in
+            if !newValue { ratingErrorText = nil }
+        })) {
+            Button("OK", role: .cancel) {
+                ratingErrorText = nil
+            }
+        } message: {
+            Text(ratingErrorText ?? "")
+        }
         .task {
             await viewModel.loadAvailability(service: PharmacistServiceFactory.makeService())
+        }
+        .onChange(of: viewModel.callState) { _, newValue in
+            switch newValue {
+            case .requesting, .connecting, .scheduled, .connected:
+                hasPresentedAutoRating = false
+            case .ended:
+                guard !hasPresentedAutoRating, viewModel.durationText != "00:00" else { return }
+                hasPresentedAutoRating = true
+                Task {
+                    await presentRatingForLatestCompletedCallIfNeeded()
+                }
+            case .checking, .failed:
+                break
+            }
         }
     }
 
@@ -212,6 +250,17 @@ struct PharmacistCallView: View {
         }
         return "Hang up"
     }
+
+    private func presentRatingForLatestCompletedCallIfNeeded() async {
+        do {
+            let history = try await PharmacistServiceFactory.makeService().callHistory()
+            if let latestUnrated = history.calls.first(where: { $0.canRate }) {
+                ratingTargetCall = latestUnrated
+            }
+        } catch {
+            ratingErrorText = (error as? LocalizedError)?.errorDescription ?? "Unable to load call rating."
+        }
+    }
 }
 
 private struct CallControlButton: View {
@@ -266,5 +315,73 @@ private struct CallControlButton: View {
 #Preview {
     NavigationStack {
         PharmacistCallView(handoff: HandoffPayload(userMessage: "Question", summarizedLogs: "Summary", attachedRange: DateInterval(start: Date(), end: Date())))
+    }
+}
+
+private struct CallRatingPromptSheet: View {
+    let call: PharmacistCallRecord
+    let onSubmit: (_ rating: Int, _ feedback: String?) async throws -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedRating = 0
+    @State private var feedback = ""
+    @State private var isSubmitting = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Rate your pharmacist call") {
+                    HStack(spacing: 8) {
+                        ForEach(1...5, id: \.self) { value in
+                            Button {
+                                selectedRating = value
+                            } label: {
+                                Image(systemName: value <= selectedRating ? "star.fill" : "star")
+                                    .font(.title3)
+                                    .foregroundStyle(value <= selectedRating ? .yellow : Theme.textSecondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    Text("Duration: \(durationText(call.durationSeconds))")
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+
+                Section("Optional feedback") {
+                    TextField("Tell us about your call", text: $feedback, axis: .vertical)
+                        .lineLimit(2...5)
+                }
+            }
+            .navigationTitle("Rate call")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Later") { dismiss() }
+                        .disabled(isSubmitting)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Submit") {
+                        Task {
+                            isSubmitting = true
+                            do {
+                                try await onSubmit(selectedRating, feedback.trimmingCharacters(in: .whitespacesAndNewlines))
+                                dismiss()
+                            } catch {
+                                // Parent view surfaces this error.
+                            }
+                            isSubmitting = false
+                        }
+                    }
+                    .disabled(selectedRating == 0 || isSubmitting)
+                }
+            }
+        }
+    }
+
+    private func durationText(_ seconds: Int) -> String {
+        let total = max(0, seconds)
+        let minutes = total / 60
+        let remainder = total % 60
+        return String(format: "%02d:%02d", minutes, remainder)
     }
 }

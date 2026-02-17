@@ -37,7 +37,7 @@ struct SettingsView: View {
                             ActiveSessionsView()
                         } label: {
                             HStack {
-                                Image(systemName: "desktopcomputer.and.iphone")
+                                Image(systemName: "laptopcomputer.and.iphone")
                                 Text("Active sessions")
                             }
                             .font(Typography.body)
