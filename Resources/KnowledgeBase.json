@@ -1,0 +1,119 @@
+[
+  {
+    "id": "getting-started",
+    "title": "Getting started with Symptom Nerd",
+    "summary": "A quick guide to logging and understanding patterns.",
+    "sections": [
+      {
+        "heading": "Log your first symptom",
+        "bullets": [
+          "Tap Log Symptom from Home or Timeline.",
+          "Choose a symptom type and severity.",
+          "Add onset, duration, and any triggers.",
+          "Save and see it appear on your timeline."
+        ]
+      },
+      {
+        "heading": "Review your trends",
+        "bullets": [
+          "Use Insights to view charts and averages.",
+          "Look for recurring triggers or time-of-day patterns.",
+          "Remember: these are observations, not diagnoses."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "describe-symptoms",
+    "title": "How to describe symptoms",
+    "summary": "Bring detail without stress.",
+    "sections": [
+      {
+        "heading": "What to include",
+        "bullets": [
+          "Onset: when it started and how quickly.",
+          "Severity: 0–10 scale over time.",
+          "Location: where it is on the body.",
+          "Quality: sharp, dull, throbbing, itchy, etc."
+        ]
+      },
+      {
+        "heading": "Context that can help",
+        "bullets": [
+          "Sleep, hydration, caffeine, alcohol.",
+          "Stress level and screen time.",
+          "Meals, activity, and weather changes."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "using-ai",
+    "title": "Using Symptom Nerd AI safely",
+    "summary": "Get insights without expecting diagnoses.",
+    "sections": [
+      {
+        "heading": "What AI can do",
+        "bullets": [
+          "Summarize what you logged.",
+          "Highlight possible patterns or relationships.",
+          "Suggest questions to ask a clinician."
+        ]
+      },
+      {
+        "heading": "What AI cannot do",
+        "bullets": [
+          "Provide a medical diagnosis.",
+          "Prescribe or change medications.",
+          "Replace professional medical care."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "exporting",
+    "title": "Sharing with a clinician",
+    "summary": "Create a clear, doctor-ready summary.",
+    "sections": [
+      {
+        "heading": "Before your appointment",
+        "bullets": [
+          "Export the last 7–30 days for a focused view.",
+          "Include symptom frequency and severity trends.",
+          "Write down 1–3 key questions."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "prepare-visit",
+    "title": "Preparing for a visit",
+    "summary": "Turn your logs into a clear story.",
+    "sections": [
+      {
+        "heading": "Bring this with you",
+        "bullets": [
+          "Symptom timeline and recent patterns.",
+          "Medication list and recent changes.",
+          "Questions you want answered."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "safety",
+    "title": "Safety reminders",
+    "summary": "Know when to seek urgent care.",
+    "sections": [
+      {
+        "heading": "Red flags",
+        "bullets": [
+          "Sudden, severe symptoms or rapid worsening.",
+          "Chest pain, shortness of breath, fainting.",
+          "New neurological changes (confusion, weakness).",
+          "If you think this may be an emergency, call your local emergency number."
+        ]
+      }
+    ]
+  }
+]
