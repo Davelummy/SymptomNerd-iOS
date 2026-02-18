@@ -625,8 +625,10 @@ final class TwilioVoiceCallProvider: NSObject, CallProvider {
     private var activeRequestID: String?
     private var connectedAt: Date?
     private var ringbackTimer: DispatchSourceTimer?
+    private var ringbackIsActive = false
     private var queuePollTask: Task<Void, Never>?
     private var lastKnownQueuePosition: Int?
+    private let minimumConnectedSecondsForCompletion: TimeInterval = 6
 #if canImport(TwilioVoice)
     private var activeCall: Call?
 #endif
@@ -669,7 +671,6 @@ final class TwilioVoiceCallProvider: NSObject, CallProvider {
 
             connectedAt = nil
             stopQueuePolling()
-            startRingbackTone()
             activeCall = TwilioVoiceSDK.connect(options: options, delegate: self)
             emit(.connecting("Calling pharmacist…"))
             return .connecting("Calling pharmacist…")
@@ -846,20 +847,21 @@ final class TwilioVoiceCallProvider: NSObject, CallProvider {
     }
 
     private func startRingbackTone() {
+        if ringbackIsActive { return }
         stopRingbackTone()
+        ringbackIsActive = true
         let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now(), repeating: .seconds(2))
+        timer.schedule(deadline: .now(), repeating: .seconds(3))
         timer.setEventHandler {
+            guard self.ringbackIsActive else { return }
             AudioServicesPlaySystemSound(1005)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
-                AudioServicesPlaySystemSound(1005)
-            }
         }
         timer.resume()
         ringbackTimer = timer
     }
 
     private func stopRingbackTone() {
+        ringbackIsActive = false
         ringbackTimer?.cancel()
         ringbackTimer = nil
     }
@@ -1042,6 +1044,9 @@ extension TwilioVoiceCallProvider: CallDelegate {
             Task { await postCallStatus("failed") }
         } else if !wasConnected {
             emit(.ended("Call was not answered.", duration: 0))
+            Task { await postCallStatus("missed") }
+        } else if duration < minimumConnectedSecondsForCompletion {
+            emit(.ended("Call disconnected before conversation started.", duration: 0))
             Task { await postCallStatus("missed") }
         } else {
             emit(.ended("Call ended.", duration: duration))
