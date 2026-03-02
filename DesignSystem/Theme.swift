@@ -70,4 +70,19 @@ enum Theme {
     static let spacingXL: CGFloat = 32
 
     static let tabBarHeight: CGFloat = 78
+
+    // MARK: - Semantic status colours
+    static let successGreen = Color(red: 0.18, green: 0.76, blue: 0.34)
+    static let warningAmber = Color(red: 0.98, green: 0.72, blue: 0.10)
+    static let errorRed     = Color(red: 0.94, green: 0.22, blue: 0.22)
+
+    // MARK: - Severity colour scale  (0 = green … 10 = red)
+    static func severityColor(for severity: Int) -> Color {
+        switch severity {
+        case 0...3:  return Color(red: 0.18, green: 0.76, blue: 0.34)
+        case 4...5:  return Color(red: 0.98, green: 0.72, blue: 0.10)
+        case 6...7:  return Color(red: 1.00, green: 0.50, blue: 0.12)
+        default:     return Color(red: 0.94, green: 0.22, blue: 0.22)
+        }
+    }
 }

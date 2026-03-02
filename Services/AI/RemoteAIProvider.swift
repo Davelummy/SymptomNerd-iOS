@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseAuth
 
 struct RemoteAIProvider: AIProvider {
     let baseURLString: String
@@ -19,6 +20,10 @@ struct RemoteAIProvider: AIProvider {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let user = Auth.auth().currentUser,
+           let idToken = try? await user.getIDToken() {
+            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+        }
         request.httpBody = try JSONEncoder().encode(body)
 
         do {

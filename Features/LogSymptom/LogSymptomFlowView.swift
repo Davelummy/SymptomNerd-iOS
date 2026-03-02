@@ -4,6 +4,7 @@ import SwiftData
 struct LogSymptomFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(HealthKitClient.self) private var healthKit
 
     var onSaved: (() -> Void)? = nil
 
@@ -19,6 +20,8 @@ struct LogSymptomFlowView: View {
     @State private var caffeineMg: String = ""
     @State private var alcoholUnits: String = ""
 
+    @State private var bodyLocation: BodyLocation? = nil
+    @State private var selectedPeriodTag: PeriodTag = .none
     @State private var selectedQualities: Set<SymptomQuality> = []
     @State private var selectedAssociated: Set<AssociatedSymptom> = []
     @State private var selectedTriggers: Set<Trigger> = []
@@ -44,13 +47,13 @@ struct LogSymptomFlowView: View {
                     }
                 }
 
+                Section {
+                    BodyLocationPicker(location: $bodyLocation)
+                }
+
                 Section("Severity") {
-                    HStack {
-                        Text("\(Int(severity))/10")
-                            .font(Typography.headline)
-                        Spacer()
-                    }
-                    Slider(value: $severity, in: 0...10, step: 1)
+                    SeveritySliderView(value: $severity)
+                        .padding(.vertical, Theme.spacingXS)
                 }
 
                 Section("Onset & duration") {
@@ -87,6 +90,11 @@ struct LogSymptomFlowView: View {
                     TextField("Alcohol units", text: $alcoholUnits)
                         .keyboardType(.numberPad)
                     TextField("Meds taken (comma separated)", text: $medsText)
+                    Picker("Cycle phase", selection: $selectedPeriodTag) {
+                        ForEach(PeriodTag.allCases, id: \.self) { tag in
+                            Text(tag.displayName).tag(tag)
+                        }
+                    }
                 }
 
                 Section("Notes") {
@@ -109,6 +117,16 @@ struct LogSymptomFlowView: View {
                 }
             }
             .navigationTitle("Log Symptom")
+            .task {
+                if healthKit.isAuthorized {
+                    if sleepHours.isEmpty, let hours = await healthKit.fetchLastNightSleepHours() {
+                        sleepHours = String(hours)
+                    }
+                    if hydrationLiters.isEmpty, let liters = await healthKit.fetchTodayWaterLiters() {
+                        hydrationLiters = String(liters)
+                    }
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
@@ -184,14 +202,14 @@ struct LogSymptomFlowView: View {
             hydrationLiters: hydration,
             caffeineMg: caffeine,
             alcoholUnits: alcohol,
-            periodTag: nil,
+            periodTag: selectedPeriodTag == .none ? nil : selectedPeriodTag,
             medsTaken: meds
         )
 
         let entry = SymptomEntry(
             symptomType: symptomType,
             symptomNameOverride: symptomType.isCustom ? symptomType.name : nil,
-            bodyLocation: nil,
+            bodyLocation: bodyLocation,
             severity: Int(severity),
             onset: onset,
             durationMinutes: duration,

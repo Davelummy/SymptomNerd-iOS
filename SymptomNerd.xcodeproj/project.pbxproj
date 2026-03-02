@@ -63,6 +63,8 @@
 		1EC6D54B2F2F9CAB00C3DDC5 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 1EC6D54A2F2F9CAB00C3DDC5 /* GoogleSignIn */; };
 		1ED19E532F2E59E100084DD5 /* DateHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ED19E502F2E59E000084DD5 /* DateHelpers.swift */; };
 		1ED19E542F2E59E100084DD5 /* LogSymptomFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ED19E362F2E59E000084DD5 /* LogSymptomFlowView.swift */; };
+		897BBAE7307C4C3B95EA6D2A /* BodyLocationPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEAB00FA4C04C928B46402D /* BodyLocationPicker.swift */; };
+		9CD3536CF78C478BA69F1180 /* SeveritySliderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C0E65A82794381AE2AE4BF /* SeveritySliderView.swift */; };
 		1ED19E552F2E59E100084DD5 /* KnowledgeBaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ED19E342F2E59E000084DD5 /* KnowledgeBaseView.swift */; };
 		1ED19E562F2E59E100084DD5 /* SwiftDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ED19E4D2F2E59E000084DD5 /* SwiftDataStore.swift */; };
 		1ED19E572F2E59E100084DD5 /* DIContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ED19E252F2E59E000084DD5 /* DIContainer.swift */; };
@@ -187,6 +189,8 @@
 		1ED19E322F2E59E000084DD5 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 		1ED19E342F2E59E000084DD5 /* KnowledgeBaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnowledgeBaseView.swift; sourceTree = "<group>"; };
 		1ED19E362F2E59E000084DD5 /* LogSymptomFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogSymptomFlowView.swift; sourceTree = "<group>"; };
+		FDEAB00FA4C04C928B46402D /* BodyLocationPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyLocationPicker.swift; sourceTree = "<group>"; };
+		77C0E65A82794381AE2AE4BF /* SeveritySliderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeveritySliderView.swift; sourceTree = "<group>"; };
 		1ED19E382F2E59E000084DD5 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		1ED19E3A2F2E59E000084DD5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		1ED19E3C2F2E59E000084DD5 /* TimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineView.swift; sourceTree = "<group>"; };
@@ -470,6 +474,8 @@
 			isa = PBXGroup;
 			children = (
 				1ED19E362F2E59E000084DD5 /* LogSymptomFlowView.swift */,
+				FDEAB00FA4C04C928B46402D /* BodyLocationPicker.swift */,
+				77C0E65A82794381AE2AE4BF /* SeveritySliderView.swift */,
 			);
 			path = LogSymptom;
 			sourceTree = "<group>";
@@ -760,6 +766,8 @@
 				50EB1D85AAA548CF90CB4391 /* ShareSheet.swift in Sources */,
 				1ED19E532F2E59E100084DD5 /* DateHelpers.swift in Sources */,
 				1ED19E542F2E59E100084DD5 /* LogSymptomFlowView.swift in Sources */,
+				897BBAE7307C4C3B95EA6D2A /* BodyLocationPicker.swift in Sources */,
+				9CD3536CF78C478BA69F1180 /* SeveritySliderView.swift in Sources */,
 				1ED19E552F2E59E100084DD5 /* KnowledgeBaseView.swift in Sources */,
 				1ED19E6F2F2E6B6200084DD5 /* SymptomEntryRecord.swift in Sources */,
 				1ED19E562F2E59E100084DD5 /* SwiftDataStore.swift in Sources */,
@@ -993,12 +1001,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SymptomNerd/SymptomNerd.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = M3WR2X7ZZX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Use Face ID or device passcode to protect your health data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -1025,12 +1035,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = SymptomNerd/SymptomNerd.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = M3WR2X7ZZX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Use Face ID or device passcode to protect your health data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
