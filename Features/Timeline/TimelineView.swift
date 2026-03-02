@@ -31,40 +31,7 @@ struct TimelineView: View {
     var body: some View {
         VStack(spacing: 0) {
             searchBar
-
-            if viewModel.entries.isEmpty {
-                emptyState
-            } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: Theme.spacingM,
-                               pinnedViews: .sectionHeaders) {
-                        ForEach(grouped, id: \.day) { group in
-                            Section {
-                                ForEach(group.entries) { entry in
-                                    NavigationLink {
-                                        TimelineEntryDetailView(entry: entry)
-                                    } label: {
-                                        EntryCardView(entry: entry) {
-                                            pendingDelete = entry
-                                            showDeleteConfirm = true
-                                        }
-                                    }
-                                    .buttonStyle(.plain)
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .top).combined(with: .opacity),
-                                        removal: .move(edge: .trailing).combined(with: .opacity)
-                                    ))
-                                }
-                            } header: {
-                                sectionHeader(for: group.day)
-                            }
-                        }
-                    }
-                    .screenPadding()
-                    .padding(.bottom, Theme.spacingL)
-                    .animation(.spring(duration: 0.32), value: viewModel.entries.count)
-                }
-            }
+            timelineContent
         }
         .navigationTitle("Timeline")
         .toolbar {
@@ -94,11 +61,55 @@ struct TimelineView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: { entry in
-            Text(""\(entry.symptomType.name)" will be permanently removed.")
+            Text("\"\(entry.symptomType.name)\" will be permanently removed.")
         }
     }
 
     // MARK: - Sub-views
+
+    @ViewBuilder
+    private var timelineContent: some View {
+        if viewModel.entries.isEmpty {
+            emptyState
+        } else {
+            timelineList
+        }
+    }
+
+    private var timelineList: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: Theme.spacingM, pinnedViews: .sectionHeaders) {
+                ForEach(grouped, id: \.day) { group in
+                    daySection(group)
+                }
+            }
+            .screenPadding()
+            .padding(.bottom, Theme.spacingL)
+            .animation(.spring(duration: 0.32), value: viewModel.entries.count)
+        }
+    }
+
+    private func daySection(_ group: (day: Date, entries: [SymptomEntry])) -> some View {
+        Section {
+            ForEach(group.entries) { entry in
+                NavigationLink {
+                    TimelineEntryDetailView(entry: entry)
+                } label: {
+                    EntryCardView(entry: entry) {
+                        pendingDelete = entry
+                        showDeleteConfirm = true
+                    }
+                }
+                .buttonStyle(.plain)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity),
+                    removal: .move(edge: .trailing).combined(with: .opacity)
+                ))
+            }
+        } header: {
+            sectionHeader(for: group.day)
+        }
+    }
 
     private var searchBar: some View {
         HStack(spacing: Theme.spacingS) {

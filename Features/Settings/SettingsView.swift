@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var isICloudEnabled = false
-    @State private var isHealthKitEnabled = false
+    @AppStorage("sync.cloudEnabled") private var isICloudEnabled = true
+    @Environment(HealthKitClient.self) private var healthKit
     @AppStorage("notifications.wellness.enabled") private var wellnessNotificationsEnabled = true
     @Environment(AppState.self) private var appState
     @Environment(AppThemeSettings.self) private var themeSettings
@@ -77,7 +77,21 @@ struct SettingsView: View {
                                 }
                             }
                         Toggle("iCloud Sync (Optional)", isOn: $isICloudEnabled)
-                        Toggle("HealthKit (Optional)", isOn: $isHealthKitEnabled)
+                        Toggle("HealthKit (Optional)", isOn: Binding(
+                            get: { healthKit.isAuthorized },
+                            set: { _ in
+                                Task { await healthKit.requestAuthorization() }
+                            }
+                        ))
+                        if healthKit.isAuthorized {
+                            Text("Sleep and water data will be suggested when logging symptoms.")
+                                .font(Typography.caption)
+                                .foregroundStyle(Theme.textSecondary)
+                        } else if !healthKit.isAvailable {
+                            Text("HealthKit is not available on this device.")
+                                .font(Typography.caption)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
                     }
                 }
 
@@ -100,7 +114,7 @@ struct SettingsView: View {
                         Text("Connected backend")
                             .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary)
-                        Text("Production")
+                        Text(aiSettings.baseURLString)
                             .font(Typography.body)
                         Picker("AI response language", selection: Binding(
                             get: { aiSettings.preferredLanguage },
@@ -119,7 +133,7 @@ struct SettingsView: View {
                                 .font(Typography.caption)
                                 .foregroundStyle(Theme.textSecondary)
                         }
-                        Text("Production backend is preconfigured for all users.")
+                        Text("If this points to localhost, the app will automatically fall back to production.")
                             .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary)
                     }

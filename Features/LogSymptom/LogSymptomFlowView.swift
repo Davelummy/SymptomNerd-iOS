@@ -52,7 +52,7 @@ struct LogSymptomFlowView: View {
                 }
 
                 Section("Severity") {
-                    SeveritySliderView(value: $severity)
+                    LogSeveritySlider(value: $severity)
                         .padding(.vertical, Theme.spacingXS)
                 }
 
@@ -230,6 +230,74 @@ struct LogSymptomFlowView: View {
         } catch {
             isSaving = false
             errorMessage = "Failed to save entry."
+        }
+    }
+}
+
+private struct LogSeveritySlider: View {
+    @Binding var value: Double
+
+    var body: some View {
+        VStack(spacing: Theme.spacingS) {
+            HStack(alignment: .lastTextBaseline, spacing: Theme.spacingS) {
+                Text("\(Int(value))")
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundStyle(severityColor)
+
+                Text("/ 10")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.textSecondary)
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(severityEmoji)
+                        .font(.system(size: 28))
+                    Text(severityLabel)
+                        .font(Typography.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(severityColor)
+                }
+            }
+
+            Slider(value: $value, in: 0...10, step: 1)
+                .tint(severityColor)
+
+            HStack {
+                Text("0")
+                Spacer()
+                Text("5")
+                Spacer()
+                Text("10")
+            }
+            .font(.system(size: 10, weight: .medium))
+            .foregroundStyle(Theme.textSecondary)
+        }
+    }
+
+    private var severityColor: Color {
+        Theme.severityColor(for: Int(value))
+    }
+
+    private var severityLabel: String {
+        switch Int(value) {
+        case 0: return "None"
+        case 1...3: return "Mild"
+        case 4...5: return "Moderate"
+        case 6...7: return "Severe"
+        case 8...9: return "Very severe"
+        default: return "Unbearable"
+        }
+    }
+
+    private var severityEmoji: String {
+        switch Int(value) {
+        case 0: return "😊"
+        case 1...3: return "🙂"
+        case 4...5: return "😐"
+        case 6...7: return "😖"
+        case 8...9: return "😣"
+        default: return "😫"
         }
     }
 }

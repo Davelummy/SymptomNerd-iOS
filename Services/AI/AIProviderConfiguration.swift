@@ -24,7 +24,13 @@ struct AIProviderConfiguration {
         } else if candidate.hasPrefix("//") {
             candidate = "https:" + candidate
         } else if !candidate.contains("://") {
-            candidate = "https://" + candidate
+            let hostPart = String(candidate.split(separator: "/").first ?? "")
+            let hostOnly = hostPart.split(separator: ":").first.map(String.init)?.lowercased() ?? ""
+            if isLikelyLocalHost(hostOnly) {
+                candidate = "http://" + candidate
+            } else {
+                candidate = "https://" + candidate
+            }
         }
 
         guard var components = URLComponents(string: candidate),
@@ -42,6 +48,16 @@ struct AIProviderConfiguration {
 
     static func resolvedBaseURL(from rawValue: String?) -> URL? {
         URL(string: normalizedBaseURL(from: rawValue))
+    }
+
+    private static func isLikelyLocalHost(_ host: String) -> Bool {
+        if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+            return true
+        }
+        if host.hasPrefix("192.168.") || host.hasPrefix("10.") || host.hasPrefix("172.") {
+            return true
+        }
+        return false
     }
 }
 

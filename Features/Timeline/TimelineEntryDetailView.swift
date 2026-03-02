@@ -2,6 +2,13 @@ import SwiftUI
 
 struct TimelineEntryDetailView: View {
     let entry: SymptomEntry
+    
+    private struct ContextRow: Identifiable {
+        let id: String
+        let icon: String
+        let label: String
+        let value: String
+    }
 
     var body: some View {
         ScrollView {
@@ -161,39 +168,19 @@ struct TimelineEntryDetailView: View {
 
     @ViewBuilder
     private var contextCard: some View {
-        let ctx = entry.context
-        let hasContext = ctx.sleepHours != nil || ctx.hydrationLiters != nil
-            || ctx.caffeineMg != nil || ctx.alcoholUnits != nil
-            || ctx.periodTag != nil || !ctx.medsTaken.isEmpty
-
-        if hasContext {
+        if !contextRows.isEmpty {
             CardView {
                 VStack(alignment: .leading, spacing: Theme.spacingS) {
                     Label("Context", systemImage: "list.bullet.clipboard")
                         .font(Typography.headline)
 
-                    let rows: [(String, String, String)] = [
-                        ("moon.zzz", "Sleep",
-                         ctx.sleepHours.map { "\($0) hrs" } ?? ""),
-                        ("drop", "Hydration",
-                         ctx.hydrationLiters.map { "\($0) L" } ?? ""),
-                        ("cup.and.saucer", "Caffeine",
-                         ctx.caffeineMg.map { "\($0) mg" } ?? ""),
-                        ("wineglass", "Alcohol",
-                         ctx.alcoholUnits.map { "\($0) units" } ?? ""),
-                        ("cross.case", "Medications",
-                         ctx.medsTaken.isEmpty ? "" : ctx.medsTaken.joined(separator: ", ")),
-                        ("circle.hexagonpath", "Cycle phase",
-                         ctx.periodTag?.displayName ?? "")
-                    ].filter { !$0.2.isEmpty }
-
-                    ForEach(rows, id: \.0) { icon, label, value in
+                    ForEach(contextRows) { row in
                         HStack {
-                            Label(label, systemImage: icon)
+                            Label(row.label, systemImage: row.icon)
                                 .font(Typography.body)
                                 .foregroundStyle(Theme.textSecondary)
                             Spacer()
-                            Text(value)
+                            Text(row.value)
                                 .font(Typography.body)
                                 .foregroundStyle(Theme.textPrimary)
                         }
@@ -201,6 +188,37 @@ struct TimelineEntryDetailView: View {
                 }
             }
         }
+    }
+    
+    private var contextRows: [ContextRow] {
+        let ctx = entry.context
+        var rows: [ContextRow] = []
+
+        if let sleepHours = ctx.sleepHours {
+            rows.append(ContextRow(id: "sleep", icon: "moon.zzz", label: "Sleep", value: "\(sleepHours) hrs"))
+        }
+        if let hydrationLiters = ctx.hydrationLiters {
+            rows.append(ContextRow(id: "hydration", icon: "drop", label: "Hydration", value: "\(hydrationLiters) L"))
+        }
+        if let caffeineMg = ctx.caffeineMg {
+            rows.append(ContextRow(id: "caffeine", icon: "cup.and.saucer", label: "Caffeine", value: "\(caffeineMg) mg"))
+        }
+        if let alcoholUnits = ctx.alcoholUnits {
+            rows.append(ContextRow(id: "alcohol", icon: "wineglass", label: "Alcohol", value: "\(alcoholUnits) units"))
+        }
+        if !ctx.medsTaken.isEmpty {
+            rows.append(ContextRow(
+                id: "medications",
+                icon: "cross.case",
+                label: "Medications",
+                value: ctx.medsTaken.joined(separator: ", ")
+            ))
+        }
+        if let periodTag = ctx.periodTag {
+            rows.append(ContextRow(id: "period", icon: "circle.hexagonpath", label: "Cycle phase", value: periodTag.displayName))
+        }
+
+        return rows
     }
 
     private func statTile(icon: String, label: String, value: String) -> some View {

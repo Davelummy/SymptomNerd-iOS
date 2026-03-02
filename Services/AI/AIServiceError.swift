@@ -12,7 +12,7 @@ enum AIServiceError: LocalizedError {
         case .offline:
             return "You appear to be offline."
         case .serverError:
-            return "The AI service is temporarily unavailable. Check that the local backend is running and your API key/model are valid."
+            return "The AI service is temporarily unavailable. Please try again in a moment."
         case .serverMessage(let message):
             return message
         case .timeout:

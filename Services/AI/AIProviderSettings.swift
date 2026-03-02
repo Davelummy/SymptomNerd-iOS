@@ -32,7 +32,15 @@ final class AIProviderSettings {
 
     init(defaults: UserDefaults = .standard) {
         let storedUseRemote = defaults.object(forKey: Keys.useRemote) as? Bool ?? true
-        let storedBaseURL = AIProviderConfiguration.normalizedBaseURL(from: defaults.string(forKey: Keys.baseURL))
+        let normalizedStoredBaseURL = AIProviderConfiguration.normalizedBaseURL(from: defaults.string(forKey: Keys.baseURL))
+        let storedHost = URL(string: normalizedStoredBaseURL)?.host?.lowercased() ?? ""
+        let shouldForceProduction =
+            storedHost == "localhost" ||
+            storedHost == "127.0.0.1" ||
+            storedHost == "::1"
+        let storedBaseURL = shouldForceProduction
+            ? AIProviderConfiguration.productionBaseURL
+            : normalizedStoredBaseURL
         let storedLanguage = defaults.string(forKey: Keys.preferredLanguage) ?? "English"
 
         self.defaults = defaults
@@ -44,6 +52,8 @@ final class AIProviderSettings {
             defaults.set(storedUseRemote, forKey: Keys.useRemote)
         }
         if defaults.string(forKey: Keys.baseURL) == nil {
+            defaults.set(storedBaseURL, forKey: Keys.baseURL)
+        } else if shouldForceProduction {
             defaults.set(storedBaseURL, forKey: Keys.baseURL)
         }
         if defaults.string(forKey: Keys.preferredLanguage) == nil {
