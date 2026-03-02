@@ -1,6 +1,13 @@
 import Foundation
 import FirebaseAuth
 
+enum AIBackendStatus: Equatable {
+    case checking
+    case online
+    case unavailable
+    case mock
+}
+
 @MainActor
 final class AIChatViewModel: ObservableObject {
     @Published var messages: [AIChatMessage] = []
@@ -8,6 +15,7 @@ final class AIChatViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var lastRequestSummary: AIRequestSummary?
+    @Published private(set) var backendStatus: AIBackendStatus = .checking
 
     private var client: AIClient?
     private var persistence: PersistenceClient?
@@ -18,17 +26,28 @@ final class AIChatViewModel: ObservableObject {
     private let defaults = UserDefaults.standard
     private let profilePrefix = "profile.medical."
     private let historyPrefix = "profile.history."
+    private var isRemoteProvider = true
+    private var baseURLString = AIProviderConfiguration.productionBaseURL
 
-    func configure(client: AIClient, persistence: PersistenceClient, consentManager: AIConsentManager) {
+    func configure(
+        client: AIClient,
+        persistence: PersistenceClient,
+        consentManager: AIConsentManager,
+        isRemoteProvider: Bool,
+        baseURLString: String
+    ) {
         if self.client == nil {
             self.client = client
             self.persistence = persistence
             self.consentManager = consentManager
+            self.isRemoteProvider = isRemoteProvider
+            self.baseURLString = baseURLString
             if consentManager.saveConversations {
                 let saved = conversationStore.load()
                 messages = saved
             }
             seedWelcomeMessage()
+            Task { await refreshBackendStatus() }
         }
     }
 
@@ -52,6 +71,43 @@ final class AIChatViewModel: ObservableObject {
         await requestResponse(for: lastQuestion)
     }
 
+    func startNewChat() {
+        messages = []
+        input = ""
+        errorMessage = nil
+        lastQuestion = nil
+        lastRequest = nil
+        seedWelcomeMessage()
+    }
+
+    func refreshBackendStatus() async {
+        guard isRemoteProvider else {
+            backendStatus = .mock
+            return
+        }
+        guard let url = URL(string: baseURLString)?.appendingPathComponent("health") else {
+            backendStatus = .unavailable
+            return
+        }
+
+        backendStatus = .checking
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = 6
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) {
+                backendStatus = .online
+            } else {
+                backendStatus = .unavailable
+            }
+        } catch {
+            backendStatus = .unavailable
+        }
+    }
+
     private func requestResponse(for question: String) async {
         guard let client else { return }
         isLoading = true
@@ -64,10 +120,16 @@ final class AIChatViewModel: ObservableObject {
             let formatted = formatResponse(refined)
             await streamAssistantResponse(formatted)
             isLoading = false
+            if isRemoteProvider {
+                backendStatus = .online
+            }
         } catch {
             isLoading = false
             let message = (error as? LocalizedError)?.errorDescription ?? String(describing: error)
             errorMessage = message.isEmpty ? "Something went wrong." : message
+            if isRemoteProvider {
+                backendStatus = .unavailable
+            }
         }
     }
 

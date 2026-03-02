@@ -47,8 +47,11 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Theme.spacingL) {
+            VStack(alignment: .leading, spacing: Theme.spacingM) {
                 heroCard
+                if let errorMessage = viewModel.errorMessage {
+                    errorCard(message: errorMessage)
+                }
                 summaryStrip
                 galleryStrip
                 ctaRow
@@ -73,6 +76,9 @@ struct HomeView: View {
         }
         .task {
             viewModel.configure(client: SwiftDataStore(context: modelContext))
+            await viewModel.load()
+        }
+        .refreshable {
             await viewModel.load()
         }
         .onReceive(galleryTimer) { _ in
@@ -149,8 +155,16 @@ struct HomeView: View {
     private var summaryStrip: some View {
         CardView {
             VStack(alignment: .leading, spacing: Theme.spacingS) {
-                Text("Today summary")
-                    .font(Typography.headline)
+                HStack(spacing: Theme.spacingS) {
+                    Text("Today summary")
+                        .font(Typography.headline)
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .tint(Theme.accent)
+                    }
+                    Spacer()
+                }
                 if let last = viewModel.lastEntry {
                     Text("Last: \(last.symptomType.name) • \(last.severity)/10")
                         .font(Typography.body)
@@ -165,6 +179,23 @@ struct HomeView: View {
                     ChipView(title: "Streak \(viewModel.streakDays)")
                     ChipView(title: "Logs \(viewModel.entries.count)")
                 }
+            }
+        }
+    }
+
+    private func errorCard(message: String) -> some View {
+        CardView {
+            HStack(spacing: Theme.spacingS) {
+                Image(systemName: "wifi.exclamationmark")
+                    .foregroundStyle(Theme.warningAmber)
+                Text(message)
+                    .font(Typography.body)
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer()
+                Button("Retry") {
+                    Task { await viewModel.load() }
+                }
+                .font(Typography.caption)
             }
         }
     }
@@ -305,7 +336,7 @@ struct HomeView: View {
                 .foregroundStyle(Theme.textSecondary)
                 .lineLimit(2)
         }
-        .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 148, alignment: .topLeading)
         .padding(Theme.spacingM)
         .background(.ultraThinMaterial)
         .background(
@@ -333,7 +364,7 @@ struct HomeView: View {
                 .foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: fixedWidth == nil ? .infinity : fixedWidth, alignment: .leading)
-        .frame(minHeight: 126, alignment: .topLeading)
+        .frame(minHeight: 120, alignment: .topLeading)
         .padding(Theme.spacingM)
         .background(.ultraThinMaterial)
         .background(

@@ -151,66 +151,81 @@ private enum AppTab: String, CaseIterable, Identifiable {
 
 private struct AnimatedTabBar: View {
     @Binding var selectedTab: AppTab
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isKeyboardVisible = false
+    @State private var primaryGlowPulse = false
 
     var body: some View {
-        SwiftUI.TimelineView(.animation) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            let lift = CGFloat(sin(t * 1.6)) * 2
-            let glow = CGFloat((sin(t * 1.1) + 1) / 2)
-
-            HStack(spacing: 12) {
-                ForEach(AppTab.allCases) { tab in
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            selectedTab = tab
-                        }
-                    } label: {
-                        VStack(spacing: 6) {
-                            ZStack {
-                                if tab.isPrimary {
-                                    Circle()
-                                        .fill(Theme.accent)
-                                        .frame(width: 46, height: 46)
-                                        .shadow(color: Theme.accent.opacity(0.35 + glow * 0.2), radius: 12, x: 0, y: 6)
-                                }
-                                Image(systemName: tab.systemImage)
-                                    .font(tab.isPrimary ? .title2 : .title3)
-                                    .symbolRenderingMode(.palette)
-                                    .foregroundStyle(
-                                        tab.isPrimary ? Color.white : Theme.accent,
-                                        tab.isPrimary ? Theme.accentSecondary : Theme.accentSecondary
+        HStack(spacing: 12) {
+            ForEach(AppTab.allCases) { tab in
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        selectedTab = tab
+                    }
+                } label: {
+                    VStack(spacing: 6) {
+                        ZStack {
+                            if tab.isPrimary {
+                                Circle()
+                                    .fill(Theme.accent)
+                                    .frame(width: 46, height: 46)
+                                    .shadow(
+                                        color: Theme.accent.opacity(primaryGlowPulse && !reduceMotion ? 0.48 : 0.30),
+                                        radius: primaryGlowPulse && !reduceMotion ? 14 : 10,
+                                        x: 0,
+                                        y: 6
                                     )
                             }
-                            Text(tab.title)
-                                .font(.caption2)
-                                .foregroundStyle(selectedTab == tab ? Theme.accent : Theme.textSecondary)
+                            Image(systemName: tab.systemImage)
+                                .font(tab.isPrimary ? .title2 : .title3)
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(
+                                    tab.isPrimary ? Color.white : Theme.accent,
+                                    tab.isPrimary ? Theme.accentSecondary : Theme.accentSecondary
+                                )
                         }
-                        .frame(maxWidth: .infinity)
-                        .scaleEffect(selectedTab == tab ? (tab.isPrimary ? 1.12 : 1.05) : 1.0)
-                        .offset(y: selectedTab == tab ? -4 : 0)
-                        .rotation3DEffect(.degrees(selectedTab == tab ? Double(lift) : 0), axis: (x: 1, y: 0, z: 0))
+                        Text(tab.title)
+                            .font(.caption2)
+                            .foregroundStyle(selectedTab == tab ? Theme.accent : Theme.textSecondary)
                     }
-                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity)
+                    .scaleEffect(selectedTab == tab ? (tab.isPrimary ? 1.08 : 1.04) : 1.0)
+                    .offset(y: selectedTab == tab && !reduceMotion ? -3 : 0)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(Theme.glassStroke, lineWidth: 1)
+        )
+        .shadow(color: Theme.cardShadow, radius: 18, x: 0, y: 10)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 6)
+        .opacity(isKeyboardVisible ? 0 : 1)
+        .offset(y: isKeyboardVisible ? 80 : 0)
+        .animation(.easeInOut(duration: 0.25), value: isKeyboardVisible)
+        .allowsHitTesting(!isKeyboardVisible)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                primaryGlowPulse = true
+            }
+        }
+        .onChange(of: reduceMotion) { _, reduce in
+            if reduce {
+                primaryGlowPulse = false
+            } else {
+                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+                    primaryGlowPulse = true
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(Theme.glassStroke, lineWidth: 1)
-            )
-            .shadow(color: Theme.cardShadow, radius: 18, x: 0, y: 10)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 6)
-            .opacity(isKeyboardVisible ? 0 : 1)
-            .offset(y: isKeyboardVisible ? 80 : 0)
-            .animation(.easeInOut(duration: 0.25), value: isKeyboardVisible)
-            .allowsHitTesting(!isKeyboardVisible)
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
             isKeyboardVisible = true

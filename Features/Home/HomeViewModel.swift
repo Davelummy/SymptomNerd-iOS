@@ -3,6 +3,7 @@ import Foundation
 @MainActor
 final class HomeViewModel: ObservableObject {
     @Published private(set) var entries: [SymptomEntry] = []
+    @Published private(set) var isLoading = false
     @Published var errorMessage: String?
 
     private var client: PersistenceClient?
@@ -13,8 +14,11 @@ final class HomeViewModel: ObservableObject {
 
     func load() async {
         guard let client else { return }
+        isLoading = true
+        defer { isLoading = false }
         do {
             entries = try await client.fetchEntries()
+            errorMessage = nil
         } catch {
             errorMessage = "Failed to load entries."
         }

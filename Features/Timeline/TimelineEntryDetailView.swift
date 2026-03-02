@@ -12,7 +12,7 @@ struct TimelineEntryDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Theme.spacingL) {
+            VStack(alignment: .leading, spacing: Theme.spacingM) {
 
                 // ── Hero header ──────────────────────────────────────────────
                 CardView {
@@ -23,7 +23,7 @@ struct TimelineEntryDetailView: View {
                                 .font(.system(size: 36, weight: .bold, design: .rounded))
                                 .foregroundStyle(.white)
                             Text("/ 10")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(Typography.caption2.weight(.semibold))
                                 .foregroundStyle(.white.opacity(0.75))
                         }
                         .frame(width: 68, height: 72)
@@ -147,7 +147,7 @@ struct TimelineEntryDetailView: View {
                     .padding(.bottom, Theme.spacingL)
             }
             .screenPadding()
-            .padding(.vertical, Theme.spacingL)
+            .padding(.vertical, Theme.spacingM)
         }
         .navigationTitle("Entry detail")
         .navigationBarTitleDisplayMode(.inline)
@@ -227,7 +227,7 @@ struct TimelineEntryDetailView: View {
                 .font(.title3)
                 .foregroundStyle(Theme.accent)
             Text(value)
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(Typography.body.weight(.semibold))
                 .foregroundStyle(Theme.textPrimary)
                 .multilineTextAlignment(.center)
             Text(label)

@@ -4,18 +4,28 @@ import Charts
 
 struct InsightsView: View {
     @State private var selectedTab: InsightsTab = .charts
+    @State private var selectedSeverityDate: Date?
+    @State private var selectedFrequencyDate: Date?
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = InsightsViewModel()
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Theme.spacingL) {
+            VStack(alignment: .leading, spacing: Theme.spacingM) {
 
                 // ── Header ───────────────────────────────────────────────────
                 CardView {
                     VStack(alignment: .leading, spacing: Theme.spacingXS) {
-                        Label("Insights", systemImage: "chart.xyaxis.line")
-                            .font(Typography.title2)
+                        HStack(spacing: Theme.spacingS) {
+                            Label("Insights", systemImage: "chart.xyaxis.line")
+                                .font(Typography.title2)
+                            if viewModel.isLoading {
+                                ProgressView()
+                                    .scaleEffect(0.82)
+                                    .tint(Theme.accent)
+                            }
+                            Spacer()
+                        }
                         Text("Patterns and possible relationships from your logs.")
                             .font(Typography.body)
                             .foregroundStyle(Theme.textSecondary)
@@ -29,6 +39,10 @@ struct InsightsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+
+                if let errorMessage = viewModel.errorMessage {
+                    errorCard(message: errorMessage)
+                }
 
                 if selectedTab == .charts {
                     chartsContent
@@ -44,12 +58,28 @@ struct InsightsView: View {
             viewModel.configure(client: SwiftDataStore(context: modelContext))
             await viewModel.load()
         }
+        .refreshable {
+            await viewModel.load()
+        }
     }
 
     // MARK: - Charts tab
 
     @ViewBuilder
     private var chartsContent: some View {
+        if viewModel.isLoading && viewModel.entries.isEmpty {
+            CardView {
+                VStack(spacing: Theme.spacingS) {
+                    ProgressView()
+                        .tint(Theme.accent)
+                    Text("Loading insight charts...")
+                        .font(Typography.body)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .frame(maxWidth: .infinity, minHeight: 120)
+            }
+        }
+
         // Summary metric row
         HStack(spacing: Theme.spacingS) {
             metricTile(
@@ -108,6 +138,24 @@ struct InsightsView: View {
                         )
                         .foregroundStyle(Theme.severityColor(for: item.severity))
                         .symbolSize(50)
+
+                        if let selected = selectedSeverityPoint {
+                            RuleMark(x: .value("Selected", selected.date, unit: .day))
+                                .foregroundStyle(Theme.accent.opacity(0.35))
+                                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                                .annotation(position: .top, alignment: .leading) {
+                                    chartCallout(
+                                        title: selected.date.formatted(.dateTime.month(.abbreviated).day()),
+                                        value: "Severity \(selected.severity)/10"
+                                    )
+                                }
+                            PointMark(
+                                x: .value("Selected Date", selected.date, unit: .day),
+                                y: .value("Selected Severity", selected.severity)
+                            )
+                            .symbolSize(90)
+                            .foregroundStyle(Theme.severityColor(for: selected.severity))
+                        }
                     }
                     .chartYScale(domain: 0...10)
                     .chartXAxis {
@@ -124,6 +172,29 @@ struct InsightsView: View {
                                 .foregroundStyle(Color.primary.opacity(0.08))
                             AxisValueLabel()
                                 .font(Typography.caption)
+                        }
+                    }
+                    .chartOverlay { proxy in
+                        GeometryReader { geo in
+                            Rectangle()
+                                .fill(.clear)
+                                .contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { value in
+                                            guard let plotFrame = proxy.plotFrame else { return }
+                                            let frame = geo[plotFrame]
+                                            let x = value.location.x - frame.origin.x
+                                            guard x >= 0, x <= frame.size.width,
+                                                  let date: Date = proxy.value(atX: x) else {
+                                                return
+                                            }
+                                            selectedSeverityDate = date
+                                        }
+                                )
+                                .onTapGesture {
+                                    selectedSeverityDate = nil
+                                }
                         }
                     }
                     .frame(height: 190)
@@ -152,6 +223,18 @@ struct InsightsView: View {
                             )
                         )
                         .cornerRadius(4)
+
+                        if let selected = selectedFrequencyPoint {
+                            RuleMark(x: .value("Selected", selected.date, unit: .day))
+                                .foregroundStyle(Theme.accent.opacity(0.35))
+                                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                                .annotation(position: .top, alignment: .leading) {
+                                    chartCallout(
+                                        title: selected.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()),
+                                        value: "\(selected.count) logs"
+                                    )
+                                }
+                        }
                     }
                     .chartXAxis {
                         AxisMarks(values: .stride(by: .day, count: 2)) { _ in
@@ -167,6 +250,29 @@ struct InsightsView: View {
                                 .font(Typography.caption)
                         }
                     }
+                    .chartOverlay { proxy in
+                        GeometryReader { geo in
+                            Rectangle()
+                                .fill(.clear)
+                                .contentShape(Rectangle())
+                                .gesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { value in
+                                            guard let plotFrame = proxy.plotFrame else { return }
+                                            let frame = geo[plotFrame]
+                                            let x = value.location.x - frame.origin.x
+                                            guard x >= 0, x <= frame.size.width,
+                                                  let date: Date = proxy.value(atX: x) else {
+                                                return
+                                            }
+                                            selectedFrequencyDate = date
+                                        }
+                                )
+                                .onTapGesture {
+                                    selectedFrequencyDate = nil
+                                }
+                        }
+                    }
                     .frame(height: 160)
                 }
             }
@@ -178,6 +284,20 @@ struct InsightsView: View {
     }
 
     // MARK: - Helper views
+
+    private var selectedSeverityPoint: (date: Date, severity: Int)? {
+        guard let selectedSeverityDate else { return nil }
+        return viewModel.severitySeries.min(by: {
+            abs($0.date.timeIntervalSince(selectedSeverityDate)) < abs($1.date.timeIntervalSince(selectedSeverityDate))
+        })
+    }
+
+    private var selectedFrequencyPoint: (date: Date, count: Int)? {
+        guard let selectedFrequencyDate else { return nil }
+        return viewModel.dailyCounts.min(by: {
+            abs($0.date.timeIntervalSince(selectedFrequencyDate)) < abs($1.date.timeIntervalSince(selectedFrequencyDate))
+        })
+    }
 
     private func metricTile(icon: String, label: String,
                             value: String, color: Color) -> some View {
@@ -214,6 +334,41 @@ struct InsightsView: View {
         .frame(height: 130)
         .background(Theme.accentSoft.opacity(0.25),
                     in: RoundedRectangle(cornerRadius: Theme.radiusMedium, style: .continuous))
+    }
+
+    private func chartCallout(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textSecondary)
+            Text(value)
+                .font(Typography.caption.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Theme.glassStroke, lineWidth: 1)
+        )
+    }
+
+    private func errorCard(message: String) -> some View {
+        CardView {
+            HStack(spacing: Theme.spacingS) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Theme.warningAmber)
+                Text(message)
+                    .font(Typography.body)
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer()
+                Button("Retry") {
+                    Task { await viewModel.load() }
+                }
+                .font(Typography.caption)
+            }
+        }
     }
 }
 

@@ -120,11 +120,11 @@ struct OnboardingView: View {
     }
 
     private var headerTitleColor: Color {
-        Color(red: 0.06, green: 0.09, blue: 0.16)
+        Theme.textPrimary
     }
 
     private var headerSubtitleColor: Color {
-        Color(red: 0.20, green: 0.28, blue: 0.36).opacity(0.82)
+        Theme.textSecondary
     }
 }
 
@@ -215,19 +215,15 @@ private struct OnboardingPage: View {
 
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: Theme.radiusLarge, style: .continuous)
-            .fill(colorScheme == .dark ? Color.black.opacity(0.28) : Color.white.opacity(0.68))
+            .fill(.ultraThinMaterial)
     }
 
     private var titleColor: Color {
-        colorScheme == .dark
-            ? Color.white.opacity(0.96)
-            : Color(red: 0.08, green: 0.10, blue: 0.15)
+        Theme.textPrimary
     }
 
     private var messageColor: Color {
-        colorScheme == .dark
-            ? Color.white.opacity(0.9)
-            : Color(red: 0.16, green: 0.20, blue: 0.26).opacity(0.95)
+        Theme.textSecondary
     }
 }
 

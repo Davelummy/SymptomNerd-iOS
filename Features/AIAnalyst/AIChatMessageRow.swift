@@ -37,7 +37,7 @@ struct AIChatMessageRow: View {
                 )
 
             Text(message.createdAt.formatted(.dateTime.hour().minute()))
-                .font(.system(size: 10))
+                .font(Typography.caption2)
                 .foregroundStyle(Theme.textSecondary)
                 .padding(.leading, Theme.spacingXS)
         }
@@ -70,7 +70,7 @@ struct AIChatMessageRow: View {
                 .shadow(color: Theme.accent.opacity(0.25), radius: 6, x: 0, y: 3)
 
             Text(message.createdAt.formatted(.dateTime.hour().minute()))
-                .font(.system(size: 10))
+                .font(Typography.caption2)
                 .foregroundStyle(Theme.textSecondary)
                 .padding(.trailing, Theme.spacingXS)
         }
